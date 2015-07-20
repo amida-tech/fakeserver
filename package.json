@@ -9,10 +9,11 @@
   "author": "Matt Martz (matt.martz@amida-tech.com)",
   "license": "ISC",
   "dependencies": {
+    "async": "^1.4.0",
     "express": "^4.13.1"
   },
   "repository": {
     "type": "git",
     "url": "git@github.com:amida-tech/fakeserver.git"
-  },
+  }
 }

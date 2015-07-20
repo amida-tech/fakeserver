@@ -1,6 +1,7 @@
 var express = require('express');
 var app = express();
 var config = require('./config');
+var async = require('async');
 
 var d = new Date;
 var samplereportid = "123456789";
@@ -87,65 +88,132 @@ var Base64 = {
     }
 };
 
-app.post('/mhv-portal-web/mhv.portal', function (req, res) {
-    console.log("header: " + JSON.stringify(req.headers, null, 4));
-    console.log("authorization decode: " + Base64.decode(req.headers.authorization.split(" ")[1]));
-    console.log("query: " + JSON.stringify(req.query, null, 4));
-    if (req.query.operation) {
-        if (req.query.operation === 'downloadHealthHistoryData') {
-            res.send('Your information update is complete.  <a href="/mhv-portal-web/mhv.portal?_nfpb=true&_pageLabel=downloadData&downloadData_actionOverride=/gov/va/med/mhv/usermgmt/downloadYourData/viewCCDReport&requestDate=' + samplereportdate + '" class="mhv-input-button" style="text-decoration: none">View/Print</a></div>');
+var checkAuth = function (authHeader, callback) {
+    var auth = authHeader.split(" ")[1];
+    var decodeAuth = Base64.decode(auth).split(":");
+    var username = decodeAuth[0];
+    var password = decodeAuth[1];
+
+    var userExists = false;
+    var userAuth = false;
+    var usertype = "";
+    async.eachSeries(config.users, function (user, cb) {
+        if (user.username === username) {
+            userExists = true;
+            if (user.password === password) {
+                userAuth = true;
+                usertype = user.usertype;
+                cb();
+            } else {
+                cb();
+            }
         } else {
-            res.status(400).end();
+            cb();
         }
-    } else {
-        res.send('<a href="javascript:setValue(' + samplereportid + ',\'pdfFormat\')" class="mhv-input-button" style="text-decoration: none; display: inline-block; padding-left: 0px; padding-right: 0px; width: 187px; margin: 0px;" onclick="mhv_wt_track(9);">Download PDF File</a>');
-    }
+    }, function (err) {
+        if (userAuth) {
+            callback(null, usertype);
+        } else {
+            if (userExists) {
+                callback("wrong password");
+            } else {
+                callback("bad request");
+            }
+        }
+    })
+};
+
+app.post('/mhv-portal-web/mhv.portal', function (req, res) {
+    //console.log("header: " + JSON.stringify(req.headers, null, 4));
+    //console.log("authorization decode: " + Base64.decode(req.headers.authorization.split(" ")[1]));
+    //console.log("query: " + JSON.stringify(req.query, null, 4));
+
+    checkAuth(req.headers.authorization, function (err, usertype) {
+        if (err) {
+            console.log(err);
+            res.status(400).end();
+        } else {
+            if (req.query.operation) {
+                if (usertype === 'basic') {
+                    res.status(400).end();
+                } else {
+                    if (req.query.operation === 'downloadHealthHistoryData') {
+                        res.send('Your information update is complete.  <a href="/mhv-portal-web/mhv.portal?_nfpb=true&_pageLabel=downloadData&downloadData_actionOverride=/gov/va/med/mhv/usermgmt/downloadYourData/viewCCDReport&requestDate=' + samplereportdate + '" class="mhv-input-button" style="text-decoration: none">View/Print</a></div>');
+                    } else {
+                        res.status(400).end();
+                    }
+                }
+            } else {
+                res.send('<a href="javascript:setValue(' + samplereportid + ',\'pdfFormat\')" class="mhv-input-button" style="text-decoration: none; display: inline-block; padding-left: 0px; padding-right: 0px; width: 187px; margin: 0px;" onclick="mhv_wt_track(9);">Download PDF File</a>');
+            }
+        }
+    });
 });
 
 app.post('/mhv-portal-web/downloadData', function (req, res) {
-    console.log("header: " + JSON.stringify(req.headers, null, 4));
-    console.log("authorization decode: " + Base64.decode(req.headers.authorization.split(" ")[1]));
-    console.log("query: " + JSON.stringify(req.query, null, 4));
-    if (req.query.reportId && req.query.downloadFormat) {
-        if (req.query.reportId === samplereportid) {
-            if (req.query.downloadFormat === 'bbFormat' || req.query.downloadFormat === 'textFormat' || req.query.downloadFormat === 'pdfFormat') {
-                if (req.query.downloadFormat === 'pdfFormat') {
-                    res.send('Would send pdf');
+    //console.log("header: " + JSON.stringify(req.headers, null, 4));
+    //console.log("authorization decode: " + Base64.decode(req.headers.authorization.split(" ")[1]));
+    //console.log("query: " + JSON.stringify(req.query, null, 4));
+
+    checkAuth(req.headers.authorization, function (err, usertype) {
+        if (err) {
+            console.log(err);
+            res.status(400).end();
+        } else {
+            if (req.query.reportId && req.query.downloadFormat) {
+                if (req.query.reportId === samplereportid) {
+                    if (req.query.downloadFormat === 'bbFormat' || req.query.downloadFormat === 'textFormat' || req.query.downloadFormat === 'pdfFormat') {
+                        if (req.query.downloadFormat === 'pdfFormat') {
+                            res.send('Would send pdf');
+                        } else {
+                            res.send('Would send ASCII');
+                        }
+                    } else {
+                        res.status(400).end();
+                    }
                 } else {
-                    res.send('Would send ASCII');
+                    res.status(400).end();
                 }
             } else {
                 res.status(400).end();
             }
-        } else {
-            res.status(400).end();
         }
-    } else {
-        res.status(400).end();
-    }
+    });
 });
 
 app.post('/mhv-portal-web/downloadCCDData', function (req, res) {
-    console.log("header: " + JSON.stringify(req.headers, null, 4));
-    console.log("authorization decode: " + Base64.decode(req.headers.authorization.split(" ")[1]));
-    console.log("query: " + JSON.stringify(req.query, null, 4));
-    if (req.query.reportId && req.query.downloadFormat) {
-        if (req.query.requestDate === samplereportdate) {
-            if (req.query.downloadFormat === 'xml' || req.query.downloadFormat === 'pdf') {
-                if (req.query.downloadFormat === 'pdf') {
-                    res.send('Would send pdf');
-                } else {
-                    res.send('Would send xml');
-                }
-            } else {
-                res.status(400).end();
-            }
-        } else {
+    //console.log("header: " + JSON.stringify(req.headers, null, 4));
+    //console.log("authorization decode: " + Base64.decode(req.headers.authorization.split(" ")[1]));
+    //console.log("query: " + JSON.stringify(req.query, null, 4));
+
+    checkAuth(req.headers.authorization, function (err, usertype) {
+        if (err) {
+            console.log(err);
             res.status(400).end();
+        } else {
+            if (usertype === 'basic') {
+                res.status(400).end();
+            } else {
+                if (req.query.reportId && req.query.downloadFormat) {
+                    if (req.query.requestDate === samplereportdate) {
+                        if (req.query.downloadFormat === 'xml' || req.query.downloadFormat === 'pdf') {
+                            if (req.query.downloadFormat === 'pdf') {
+                                res.send('Would send pdf');
+                            } else {
+                                res.send('Would send xml');
+                            }
+                        } else {
+                            res.status(400).end();
+                        }
+                    } else {
+                        res.status(400).end();
+                    }
+                } else {
+                    res.status(400).end();
+                }
+            }
         }
-    } else {
-        res.status(400).end();
-    }
+    });
 });
 
 //POST
