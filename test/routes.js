@@ -150,8 +150,123 @@ describe("Routes", function () {
     });
     describe("Not a user", function () {
         var user = {
-            username: 'hankeverybody',
+            username: 'hankeveryman',
             password: 'testtest'
         };
+        it('should not return a report id and 401', function (done) {
+            request(url)
+                .post('/mhv-portal-web/mhv.portal')
+                .set('Authorization', 'Basic ' + base64.encode(user.username + ':' + user.password))
+                .expect(401)
+                .end(function (err, res) {
+                    if (err) {
+                        throw err;
+                    }
+                    var re = /(?:reportId=)([0-9]{1,})/igm;
+                    var recordId = re.exec(res.text);
+                    expect(res.status).to.equal(401);
+                    expect(recordId).to.equal(null);
+                    done();
+                });
+        });
+        it('should return 401', function (done) {
+            request(url)
+                .post('/mhv-portal-web/mhv.portal?operation=downloadHealthHistoryData')
+                .set('Authorization', 'Basic ' + base64.encode(user.username + ':' + user.password))
+                .expect(401)
+                .end(function (err, res) {
+                    if (err) {
+                        throw err;
+                    }
+                    expect(res.status).to.equal(401);
+                    //res.send('Your information update is complete.  <td nowrap="nowrap">mhv_VA_CCD_SAMPLE_20150714_1037</td> <a href="javascript:setValue(\'' + samplereportdate + '\',\'xml\')"></a>');
+                    var dateRE = /(?:javascript:setValue\(')([0-9\-T:.]{1,})/;
+                    var requestDate = dateRE.exec(res.text);
+                    expect(requestDate).to.equal(null);
+                    done();
+                });
+        });
+        it('should return 401', function (done) {
+            request(url)
+                .post('/mhv-portal-web/downloadData?reportId=&downloadFormat=pdfFormat')
+                .set('Authorization', 'Basic ' + base64.encode(user.username + ':' + user.password))
+                .expect(401)
+                .end(function (err, res) {
+                    if (err) {
+                        throw err;
+                    }
+                    expect(res.status).to.equal(401);
+                    done();
+                });
+        });
+        it('should return 401', function (done) {
+            request(url)
+                .post('/mhv-portal-web/downloadData?reportId=&downloadFormat=textFormat')
+                .set('Authorization', 'Basic ' + base64.encode(user.username + ':' + user.password))
+                .expect(401)
+                .end(function (err, res) {
+                    if (err) {
+                        throw err;
+                    }
+                    expect(res.status).to.equal(401);
+                    done();
+                });
+        });
+    });
+    describe("No user", function () {
+        it('should not return a report id and 401', function (done) {
+            request(url)
+                .post('/mhv-portal-web/mhv.portal')
+                .expect(401)
+                .end(function (err, res) {
+                    if (err) {
+                        throw err;
+                    }
+                    var re = /(?:reportId=)([0-9]{1,})/igm;
+                    var recordId = re.exec(res.text);
+                    expect(res.status).to.equal(401);
+                    expect(recordId).to.equal(null);
+                    done();
+                });
+        });
+        it('should return 401', function (done) {
+            request(url)
+                .post('/mhv-portal-web/mhv.portal?operation=downloadHealthHistoryData')
+                .expect(401)
+                .end(function (err, res) {
+                    if (err) {
+                        throw err;
+                    }
+                    expect(res.status).to.equal(401);
+                    var dateRE = /(?:javascript:setValue\(')([0-9\-T:.]{1,})/;
+                    var requestDate = dateRE.exec(res.text);
+                    expect(requestDate).to.equal(null);
+                    done();
+                });
+        });
+        it('should return 401', function (done) {
+            request(url)
+                .post('/mhv-portal-web/downloadData?reportId=&downloadFormat=pdfFormat')
+                .expect(401)
+                .end(function (err, res) {
+                    if (err) {
+                        throw err;
+                    }
+                    expect(res.status).to.equal(401);
+                    done();
+                });
+        });
+        it('should return 401', function (done) {
+            request(url)
+                .post('/mhv-portal-web/downloadData?reportId=&downloadFormat=textFormat')
+                .expect(401)
+                .end(function (err, res) {
+                    if (err) {
+                        throw err;
+                    }
+                    expect(res.status).to.equal(401);
+                    done();
+                });
+        });
     });
 });
