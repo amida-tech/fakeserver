@@ -1,6 +1,7 @@
 module.exports = function (grunt) {
     grunt.loadNpmTasks('grunt-mocha-test');
     grunt.loadNpmTasks('grunt-express-server');
+    grunt.loadNpmTasks('grunt-env');
 
     grunt.initConfig({
         express: {
@@ -19,8 +20,13 @@ module.exports = function (grunt) {
                 },
                 src: ['test/*.js']
             }
+        },
+        env: {
+            test: {
+                NODE_ENV: 'production',
+                FAKE_DELAY: 10
+            }
         }
     });
-
-    grunt.registerTask('default', ['express', 'mochaTest']);
+    grunt.registerTask('default', ['env:test', 'express', 'mochaTest']);
 };
